@@ -2,6 +2,7 @@ require 'rubygems'
 require 'hpricot'
 
 Lamda = 'λ'
+Square = '□'
 
 class State
   attr_accessor :name, :is_initial, :is_final, :id
@@ -27,8 +28,16 @@ class PDATransition < Transition
   end
 end
 
+class TuringTransition < Transition
+  attr_accessor :write, :move
+
+  def label
+    return "#{@read}; #{@write}, #{@move}"
+  end
+end
+
 class JFF
-  Supported = [:fa, :pda]
+  Supported = [:fa, :pda, :turing]
   def initialize( io )
     @doc = Hpricot.XML(io)
     typenode = @doc.at('/structure/type')
@@ -79,12 +88,18 @@ class JFF
           transition.pop = jfftransition.at('pop').inner_text.strip
           transition.push = Lamda if transition.push == ''
           transition.pop = Lamda if transition.pop == ''
+        elsif @type == :turing
+          transition = TuringTransition.new
+          transition.write = jfftransition.at('write').inner_text.strip
+          transition.move = jfftransition.at('move').inner_text.strip
+          transition.write = Square if transition.write == ''
         else
           transition = Transition.new
         end
         transition.from = @states[jfftransition.at('from').inner_text.strip]
         transition.to = @states[jfftransition.at('to').inner_text.strip]
         transition.read = jfftransition.at('read').inner_text.strip
+        transition.read = Square if transition.read == '' and @type == :turing
         transition.read = Lamda if transition.read == ''
         @transitions << transition
       end
