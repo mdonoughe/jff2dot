@@ -32,7 +32,11 @@ class TuringTransition < Transition
   attr_accessor :write, :move
 
   def label
-    return "#{@read}; #{@write}, #{@move}"
+    temp = []
+    @read.length.times do |i|
+      temp << "#{@read[i]}; #{@write[i]}, #{@move[i]}"
+    end
+    return temp.join(' | ')
   end
 end
 
@@ -90,17 +94,22 @@ class JFF
           transition.pop = Lamda if transition.pop == ''
         elsif @type == :turing
           transition = TuringTransition.new
-          transition.write = jfftransition.at('write').inner_text.strip
-          transition.move = jfftransition.at('move').inner_text.strip
-          transition.write = Square if transition.write == ''
+          ['read', 'write', 'move'].each do |sym|
+            elements = jfftransition.search(sym)
+            value = elements.collect do |e|
+              text = e.inner_text.strip
+              text = Square if text == ''
+              text
+            end
+            transition.instance_variable_set('@' + sym, value)
+          end
         else
           transition = Transition.new
         end
+        transition.read = jfftransition.at('read').inner_text.strip unless transition.read
+        transition.read = Lamda if transition.read == ''
         transition.from = @states[jfftransition.at('from').inner_text.strip]
         transition.to = @states[jfftransition.at('to').inner_text.strip]
-        transition.read = jfftransition.at('read').inner_text.strip
-        transition.read = Square if transition.read == '' and @type == :turing
-        transition.read = Lamda if transition.read == ''
         @transitions << transition
       end
     end
